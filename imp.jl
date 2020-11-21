@@ -102,7 +102,7 @@ function parse_test_file(file_name::String)::kLSF
   lines = readlines(file_name)
   nV, nE, nL, k_max = parse.(Int, split(lines[1]))
   E = Dict{Int,Set{Tuple{Int,Int}}}()
-  for i = 3:nE+1
+  for i = 3:length(lines)
   v1, v2, color = parse.(Int, split(lines[i]))
   add_edge!(E, v1, v2, color)
   end
