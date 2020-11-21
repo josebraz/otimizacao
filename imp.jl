@@ -184,16 +184,28 @@ using Statistics
 using Random
 
 function main(args)
-  # para cada arquivo de entrada executa
-  for file in args
-    input = parse_test_file(file)
-    T0 = 100.0
-    r = 0.95
-    STOP1 = 100
-    STOP2 = 50
-    STOP3 = 20
+  if length(args) < 7
+    println("Ajuda: Mínimo de 7 argumentos para essa implementação:")
+	println("       1) T0    - Temperatura inicial (Float)")
+	println("       2) r     - Decaimento da temperatura [0,1] (Float)")
+	println("       3) k     - Número de execuções completas")
+	println("       4) STOP1 - Número de iterações da metrópolis")
+	println("       5) STOP2 - Número de iterações do simulated annealing")
+	println("       6) STOP3 - Número de iterações máximas do simulated annealing sem achar uma solução melhor")
+	println("     7..) files - Lista de arquivos que serão usados como instancias")
+	return
+  end
+  
+  T0    = parse(Float64, args[1])
+  r     = parse(Float64, args[2])
+  k     = parse(Int64, args[3])     # número de execuções
+  STOP1 = parse(Int64, args[4])
+  STOP2 = parse(Int64, args[5])
+  STOP3 = parse(Int64, args[6])
 
-    k = 10  # número de execuções
+  # para cada arquivo de entrada executa
+  for file in args[7:end]
+    input = parse_test_file(file)
     list_fs0 = zeros(k)
     list_fs = zeros(k)
     list_time = zeros(k)
