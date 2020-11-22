@@ -1,14 +1,14 @@
 # Definições 
 
 struct kLSF
-  nV::Int                          # número de vértices totais
-  nE::Int                          # número de arestas totais
-  nL::Int                          # número de cores totais
-  k_max::Int                       # máximo de cores que podem ser usadas na solução
-  E::Dict{Int,Set{Tuple{Int,Int}}} # dicionario de arestas em que a chave é o vertice de partida e o valore é um conjunto de vertices destino e a cor da aresta
+  nV::Int                           # número de vértices totais
+  nE::Int                           # número de arestas totais
+  nL::Int                           # número de cores totais
+  k_max::Int                        # máximo de cores que podem ser usadas na solução
+  E::Dict{Int,Set{Tuple{Int,Int}}}  # dicionario de arestas do grafo original em que a chave é o vertice de partida e o valore é um conjunto de vertices destino e a cor da aresta
   
-  zL::Set{Int}
-  zE::Dict{Int,Set{Tuple{Int,Int}}}
+  zL::Set{Int}                      # solução, conjunto de cores usadas
+  zE::Dict{Int,Set{Tuple{Int,Int}}} # solução, dicionário representando o grafo da solução
 end
 
 ################################################################
@@ -102,9 +102,9 @@ function parse_test_file(file_name::String)::kLSF
   lines = readlines(file_name)
   nV, nE, nL, k_max = parse.(Int, split(lines[1]))
   E = Dict{Int,Set{Tuple{Int,Int}}}()
-  for i = 3:length(lines)
-  v1, v2, color = parse.(Int, split(lines[i]))
-  add_edge!(E, v1, v2, color)
+  for i=3:length(lines)
+    v1, v2, color = parse.(Int, split(lines[i]))
+    add_edge!(E, v1, v2, color)
   end
   return kLSF(nV, nE, nL, k_max, E, Set(), Dict())
 end
@@ -120,8 +120,10 @@ end
 function N(x::kLSF)::kLSF
   new_colors = Set(x.zL)
 
+  # sorteia uma cor da solução para remover
   new_colors = setdiff(new_colors, Set(rand(new_colors)))
 
+  # sorteia uma cor do conjunto de cores não usadas para entrar na solução
   while length(new_colors) < length(x.zL)
     new_colors = push!(new_colors, rand(1:x.nL))
   end
@@ -165,7 +167,7 @@ function simulated_annealing(s0::kLSF, T0::Float64, r::Float64, STOP1::Int, STOP
         if fs < fbest                  # se essa nova solução é a melhor já vista
           best = s                     # atualiza a melhor solução ja vista
           fbest = fs                   # atualiza a avaliação da melhor solução
-          killer = 0
+          killer = 0                   # reseta contador pois achou solução melhor
         end
       end   
     end
@@ -180,32 +182,40 @@ end
 
 ################################################################
 ## main
+
 using Statistics
 using Random
 
 function main(args)
+
   if length(args) < 7
     println("Ajuda: Mínimo de 7 argumentos para essa implementação:")
-	println("       1) T0    - Temperatura inicial (Float)")
-	println("       2) r     - Decaimento da temperatura [0,1] (Float)")
-	println("       3) k     - Número de execuções completas")
-	println("       4) STOP1 - Número de iterações da metrópolis")
-	println("       5) STOP2 - Número de iterações do simulated annealing")
-	println("       6) STOP3 - Número de iterações máximas do simulated annealing sem achar uma solução melhor")
-	println("     7..) files - Lista de arquivos que serão usados como instancias")
-	return
+    println("       1) T0    - Temperatura inicial (Float)")
+    println("       2) r     - Decaimento da temperatura [0,1] (Float)")
+    println("       3) k     - Número de execuções completas")
+    println("       4) STOP1 - Número de iterações da metrópolis")
+    println("       5) STOP2 - Número de iterações do simulated annealing")
+    println("       6) STOP3 - Número de iterações máximas do simulated annealing sem achar uma solução melhor")
+    println("     7..) files - Lista de arquivos que serão usados como instancias")
+	println("")
+	println("Exemplo: julia ", PROGRAM_FILE, " 100 0.95 10 500 200 50 /path/to/folder/of/examples/*")
+    return
   end
   
-  T0    = parse(Float64, args[1])
-  r     = parse(Float64, args[2])
-  k     = parse(Int64, args[3])     # número de execuções
-  STOP1 = parse(Int64, args[4])
-  STOP2 = parse(Int64, args[5])
-  STOP3 = parse(Int64, args[6])
+  T0    = parse(Float64, args[1])  # temperatura inicial
+  r     = parse(Float64, args[2])  # decaimento da temperatura
+  k     = parse(Int64, args[3])    # número de execuções completas
+  STOP1 = parse(Int64, args[4])    # número de iterações da metrópolis
+  STOP2 = parse(Int64, args[5])    # número de iterações do simulated annealing
+  STOP3 = parse(Int64, args[6])    # número de iterações máximas do simulated annealing sem achar uma solução melhor
+  files = args[7:end]              # path dos arquivos de entrada
 
   # para cada arquivo de entrada executa
-  for file in args[7:end]
+  for file in files
+  
     input = parse_test_file(file)
+	
+	# variáveis para as métricas 
     list_fs0 = zeros(k)
     list_fs = zeros(k)
     list_time = zeros(k)
@@ -213,7 +223,7 @@ function main(args)
     for i in 1:k
       Random.seed!(i)
 	  
-      list_time[i] = @elapsed begin
+      list_time[i] = @elapsed begin  # conta o tempo de execução de gerar s0 e a solução do simulated annealing
         s0 = create_S0(input)
         list_fs0[i] = f(s0)
 
