@@ -116,7 +116,6 @@ end
 # Gera vizinhos aleatórios no espaço de soluções
 # desejável: simetria (ou reversível) e completa
 # Ideia geral: pegar um cor que está no solução e trocar por uma cor que não está
-# Complexidade:
 function N(x::kLSF)::kLSF
   new_colors = Set(x.zL)
 
@@ -134,7 +133,6 @@ end
 # Cria uma solução válida inicial para ser melhorada com o algoritmo
 # Ideia geral: tentar pegar as cores que aparecem mais
 # para estarem na solução inicial (guloso)
-# Complexidade:
 function create_S0(input::kLSF)::kLSF
   zL = greedy_edge_colors(input)
   return create_graph_with_colors(input, zL)
@@ -142,7 +140,6 @@ end
 
 # avalia uma solução e retorna o score dela
 # quanto menor o valor, melhor é a solução (reduziu a energia)
-# Complexidade:
 function f(x::kLSF)::Int 
   return count_trees_solution(x)
 end
