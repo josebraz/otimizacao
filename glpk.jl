@@ -17,12 +17,12 @@ function parse_test_file(file_name::String)::kLSF
   L = Dict{Tuple{Int,Int},Int}()
   for i=3:length(lines)
     v1, v2, color = parse.(Int, split(lines[i]))
-	
-	E = push!(E, (v1, v2))
-	E = push!(E, (v2, v1))
-	L[(v1, v2)] = color
-	L[(v2, v1)] = color
-	
+    
+    E = push!(E, (v1, v2))
+    E = push!(E, (v2, v1))
+    L[(v1, v2)] = color
+    L[(v2, v1)] = color
+    
   end
   return kLSF(nV, nE, nL, k_max, E, L)
 end
@@ -59,44 +59,55 @@ using Combinatorics
 function main(args)
 
   # para cada arquivo de entrada executa
-  for file in args[1:end]
+  for file in args[2:end]
     
-	global input = parse_test_file(file)
-	
+    input = parse_test_file(file)
+    
     model = Model(GLPK.Optimizer)
- 
+	set_time_limit_sec(model, args[1]) # 10 min
+	
+
     @variable(model, z[1:input.nL], Bin)
-	@variable(model, x[1:input.nV,1:input.nV], Bin)
+    @variable(model, x[1:input.nV,1:input.nV], Bin)
+    
+    @objective(model, Max, sum(x))
+    
+	# para a quebra se ciclos
+    for S in powerset(1:input.nV) 
+      if length(S) >= 3
+        s = [(u,v) for (u,v) in combinations(S,2) if issubset(Set([(u,v)]), input.E)]
+        if (length(s) > 0)
+          @constraint(model, sum([x[u,v] for (u,v) in s]) <= length(S) - 1)
+        end
+      end
+    end
+    
+	# força pegar a cor de vértice se esse vertice está na solução
+    for (u,v) in input.E
+      @constraint(model, x[u,v] <= z[input.L[(u,v)]])
+    end
+    
+	# seta para 0 porque não tem uma aresta no grafo entre u e v
+    for u in 1:input.nV
+      for v in 1:input.nV
+        if (!issubset(Set([(u,v)]), input.E))
+          @constraint(model, x[u,v] == 0)
+        end
+      end
+    end
+    
+	# restrição de não usar mais de k_max cores na solução
+    @constraint(model, sum(z) <= input.k_max)
+    
+    optimize!(model)
 	
-	@objective(model, Max, sum(x))
-	
-	for S in powerset(1:input.nV) 
-	  if length(S) >= 3
-		s = [(u,v) for (u,v) in combinations(S,2) if issubset(Set([(u,v)]), input.E)]
-		if (length(s) > 0)
-	      @constraint(model, sum([x[u,v] for (u,v) in s]) <= length(S) - 1)
-		end
-	  end
-	end
-	
-	for (u,v) in input.E
-	  @constraint(model, x[u,v] <= z[input.L[(u,v)]])
-	end
-	
-	for u in 1:input.nV
-	  for v in 1:input.nV
-  	    if (!issubset(Set([(u,v)]), input.E))
-	      @constraint(model, x[u,v] == 0)
-	    end
-	  end
-	end
-	
-	@constraint(model, sum(z) <= input.k_max)
-	
-	optimize!(model)
-	
-	println("Arvores na solução: ", count_trees(value.(x)))
-	
+	println("Arquivo: ", file)
+	println("Status ", termination_status(model))
+	println("Time ", solve_time(model))
+	println("Objective ", objective_value(model))
+    
+    println("Arvores na solução: ", count_trees(value.(x)))
+    
   end
   
 end
